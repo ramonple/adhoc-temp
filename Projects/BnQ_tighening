@@ -1,0 +1,12 @@
+background: 
+
+In December 2025, for B&Q revolving customers, applicants with a requested amount below £2,500 were classified into a specific potentially higher-risk segment. 
+The current objective is to introduce tighter risk controls targeted at this group. 
+However, due to the short time since implementation, post-implementation data is insufficient to directly and reliably assess risk performance.
+
+To address this limitation, this project first conducts a proxy validation exercise, 
+assessing whether customers with a first spend below £2,500 exhibit similar credit profiles and risk behaviour to those with a requested amount below £2,500. 
+Subject to successful validation, we then leverage pre-implementation historical data by identifying earlier customers with first spend below £2,500. 
+This expanded dataset is subsequently used within the ML Rule Engine framework to design targeted decline rules for this specific segment.
+
+
