@@ -1,0 +1,75 @@
+with app as (
+  /* 1 row per root account for application */
+  select
+      key_num_acct,
+      max(num_client) as num_client,
+      max(dat_appl)   as dat_appl,
+      max(amt_req_spend) as amt_req_spend
+  from oraperso.bandqbase
+  where num_client in ('BQ0','BQ9')
+  group by key_num_acct
+),
+dd1 as (
+  /* first drawdown identified by :2 */
+  select
+      key_num_acct,
+      drawdown_dat_appl,
+      key_num_dda_acct,
+      spend_amount
+  from oraperso.bandqbase
+  where num_client = 'BQ3'
+    and key_num_dda_acct = key_num_acct || ':2'
+)
+select
+    a.key_num_acct,
+    a.num_client,
+    a.dat_appl,
+    a.amt_req_spend,
+    d.drawdown_dat_appl,
+    d.key_num_dda_acct,
+    d.spend_amount
+from app a
+left join dd1 d
+  on a.key_num_acct = d.key_num_acct;
+
+
+
+with app as (
+  select
+      key_num_acct,
+      max(num_client) as num_client,
+      max(dat_appl)   as dat_appl,
+      max(amt_req_spend) as amt_req_spend
+  from oraperso.bandqbase
+  where num_client in ('BQ0','BQ9')
+  group by key_num_acct
+),
+dd as (
+  select *
+  from (
+    select
+        key_num_acct,
+        drawdown_dat_appl,
+        key_num_dda_acct,
+        spend_amount,
+        row_number() over (
+          partition by key_num_acct
+          order by drawdown_dat_appl asc
+        ) as rn
+    from oraperso.bandqbase
+    where num_client = 'BQ3'
+      and spend_amount is not null
+  )
+  where rn = 1
+)
+select
+    a.key_num_acct,
+    a.num_client,
+    a.dat_appl,
+    a.amt_req_spend,
+    d.drawdown_dat_appl,
+    d.key_num_dda_acct,
+    d.spend_amount
+from app a
+left join dd d
+  on a.key_num_acct = d.key_num_acct;
