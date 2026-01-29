@@ -1,12 +1,37 @@
 background: 
+Following the segmentation change in November 2025, BQ0 revolving customers with requested amounts below £2,500 were classified into a specific segment. 
+The current objective is to introduce targeted risk controls for this group. 
 
-In December 2025, for B&Q revolving customers, applicants with a requested amount below £2,500 were classified into a specific potentially higher-risk segment. 
-The current objective is to introduce tighter risk controls targeted at this group. 
-However, due to the short time since implementation, post-implementation data is insufficient to directly and reliably assess risk performance.
+Given the immaturity of post-implementation performance data, 
+an initial validation check was conducted to assess whether first spend below £2,500 can be used as a reliable and conservative proxy for requested amount below £2,500.
 
-To address this limitation, this project first conducts a proxy validation exercise, 
-assessing whether customers with a first spend below £2,500 exhibit similar credit profiles and risk behaviour to those with a requested amount below £2,500. 
-Subject to successful validation, we then leverage pre-implementation historical data by identifying earlier customers with first spend below £2,500. 
-This expanded dataset is subsequently used within the ML Rule Engine framework to design targeted decline rules for this specific segment.
+
+Section 1: Proxy Validation
+
+To validate whether first spend below £2,500 can be used as a proxy for requested amount below £2,500, 
+I used post-implementation data only, so that we’re not mixing definitions or behaviours across different policy regimes.
+
+I started with a volume overview, just to understand data coverage and any structural limitations. 
+In total, we have 4,453 accepted new applications post-implementation. 
+Of these, around 4,155 have a recorded requested amount, meaning roughly 7% are missing request amount. 
+This is expected and largely driven by applications prior to early December, where referred cases did not consistently capture the requested amount field.
+
+From there, I looked at drawdown behaviour. 
+Out of the accepted population, around 3,000 accounts have an observed first spend, so approximately 27% have not yet drawn down. 
+That’s important context, because any analysis involving first spend necessarily conditions on customer behaviour after account opening.
+
+Using the subset with both requested amount and first spend observed, I then ran two validation checks.
+The first was a population overlap analysis, where I cross-classified customers by requested amount band and first spend band. 
+The results show very strong alignment — around 93% of customers requesting below £2,500 also first spend below £2,500. 
+The small degree of misclassification is limited and directionally conservative, meaning the proxy slightly over-captures risk rather than missing it.
+
+The second step was a risk behaviour comparison. 
+I compared key risk indicators, including the theoretical bad rate at application and RN and indebetendss score.
+Across all these metrics, the risk ordering and magnitude are consistent between customers defined by requested amount and those defined by first spend, with no material divergence.
+
+Based on these two checks together — volume alignment and risk behaviour consistency — 
+the conclusion from this first section is that first spend below £2,500 is a reasonable and conservative proxy for requested amount below £2,500. 
+This gives us the confidence to back-track pre-implementation data, 
+significantly increase sample size, and move on to the main part of the project, which is designing targeted risk controls for this segment.
 
 
