@@ -1,0 +1,91 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+def compare_distribution(
+    data1: pd.DataFrame,
+    data2: pd.DataFrame,
+    column: str,
+    data1_name: str = "Data 1",
+    data2_name: str = "Data 2",
+    title: str = "Distribution comparison",
+    show_hist: bool = True,
+    show_density: bool = True,
+    bins: int | str = "fd",
+    alpha_hist: float = 0.35,
+    trim_quantiles: tuple[float, float] | None = (0.001, 0.999),
+):
+    """
+    Compare the distribution of the same numeric column from two DataFrames.
+    """
+
+    # --- Extract & clean ---
+    if column not in data1.columns or column not in data2.columns:
+        raise ValueError(f"Column '{column}' must exist in both dataframes.")
+
+    s1 = pd.to_numeric(data1[column], errors="coerce").dropna()
+    s2 = pd.to_numeric(data2[column], errors="coerce").dropna()
+
+    if len(s1) == 0 or len(s2) == 0:
+        raise ValueError("Both datasets must contain non-missing numeric values.")
+
+    # --- Optional trimming for display only ---
+    if trim_quantiles is not None:
+        lo, hi = trim_quantiles
+        xlo = min(s1.quantile(lo), s2.quantile(lo))
+        xhi = max(s1.quantile(hi), s2.quantile(hi))
+        s1_plot = s1[(s1 >= xlo) & (s1 <= xhi)]
+        s2_plot = s2[(s2 >= xlo) & (s2 <= xhi)]
+    else:
+        s1_plot, s2_plot = s1, s2
+
+    # --- Common bins ---
+    all_vals = pd.concat([s1_plot, s2_plot], ignore_index=True)
+    data_range = (all_vals.min(), all_vals.max())
+
+    if bins == "fd":
+        q75, q25 = np.percentile(all_vals, [75, 25])
+        iqr = q75 - q25
+        bw = 2 * iqr * (len(all_vals) ** (-1/3)) if iqr > 0 else 0
+        n_bins = int(np.ceil((data_range[1] - data_range[0]) / bw)) if bw > 0 else 30
+        n_bins = max(10, min(n_bins, 200))
+    elif bins == "auto":
+        n_bins = 30
+    else:
+        n_bins = int(bins)
+
+    edges = np.linspace(data_range[0], data_range[1], n_bins + 1)
+
+    # --- Plot ---
+    plt.figure(figsize=(9, 5))
+
+    if show_hist:
+        plt.hist(
+            s1_plot, bins=edges, density=True, alpha=alpha_hist,
+            label=f"{data1_name} (n={len(s1)})"
+        )
+        plt.hist(
+            s2_plot, bins=edges, density=True, alpha=alpha_hist,
+            label=f"{data2_name} (n={len(s2)})"
+        )
+
+    if show_density:
+        x = np.linspace(data_range[0], data_range[1], 400)
+
+        def kde_gaussian(sample: np.ndarray, grid: np.ndarray) -> np.ndarray:
+            n = sample.size
+            std = sample.std(ddof=1) if n > 1 else 0.0
+            bw = 1.06 * std * (n ** (-1/5)) if std > 0 else (grid.ptp() / 50 if grid.ptp() > 0 else 1.0)
+            bw = max(bw, 1e-9)
+            z = (grid[:, None] - sample[None, :]) / bw
+            return np.exp(-0.5 * z**2).sum(axis=1) / (n * bw * np.sqrt(2*np.pi))
+
+        plt.plot(x, kde_gaussian(s1_plot.to_numpy(), x), linewidth=2)
+        plt.plot(x, kde_gaussian(s2_plot.to_numpy(), x), linewidth=2)
+
+    plt.title(title)
+    plt.xlabel(column)
+    plt.ylabel("Density")
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
