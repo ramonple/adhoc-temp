@@ -89,3 +89,98 @@ def compare_distribution(
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+
+
+from __future__ import annotations
+import pandas as pd
+import numpy as np
+
+def segment_diagnostics(
+    df: pd.DataFrame,
+    segment_col: str,
+    feature_col: str,
+    bad_flag_col: str | None = None,        # 0/1 preferred
+    exposure_col: str | None = None,        # e.g., balance / EAD
+    bad_balance_col: str | None = None,     # e.g., bad balance amount
+    dropna_segment: bool = True,
+) -> pd.DataFrame:
+    """
+    Segment-level performance + feature summary.
+
+    Returns one row per segment with:
+      - volume
+      - bad rate (if bad_flag_col provided)
+      - bad balance rate (if exposure_col + bad_balance_col provided)
+      - feature min/mean/max + missing%
+
+    Assumptions:
+      - bad_flag_col is 0/1 (or boolean). If not, pre-map it.
+      - exposure_col and bad_balance_col are numeric.
+    """
+
+    # Basic checks
+    required = [segment_col, feature_col]
+    for c in required:
+        if c not in df.columns:
+            raise ValueError(f"Column '{c}' not found in df.")
+
+    work = df.copy()
+
+    # Optionally drop missing segment values
+    if dropna_segment:
+        work = work[work[segment_col].notna()]
+
+    # Ensure numeric for feature/exposure/bad_balance
+    work[feature_col] = pd.to_numeric(work[feature_col], errors="coerce")
+
+    if bad_flag_col is not None:
+        if bad_flag_col not in work.columns:
+            raise ValueError(f"Column '{bad_flag_col}' not found in df.")
+        # Convert to 0/1 safely
+        work[bad_flag_col] = work[bad_flag_col].astype(float)
+
+    if exposure_col is not None:
+        if exposure_col not in work.columns:
+            raise ValueError(f"Column '{exposure_col}' not found in df.")
+        work[exposure_col] = pd.to_numeric(work[exposure_col], errors="coerce")
+
+    if bad_balance_col is not None:
+        if bad_balance_col not in work.columns:
+            raise ValueError(f"Column '{bad_balance_col}' not found in df.")
+        work[bad_balance_col] = pd.to_numeric(work[bad_balance_col], errors="coerce")
+
+    g = work.groupby(segment_col, dropna=not dropna_segment)
+
+    # Feature stats
+    out = pd.DataFrame({
+        "n": g.size(),
+        "feature_missing_pct": g[feature_col].apply(lambda s: s.isna().mean()),
+        "feature_min": g[feature_col].min(),
+        "feature_mean": g[feature_col].mean(),
+        "feature_max": g[feature_col].max(),
+    }).reset_index()
+
+    # Bad rate (flag-based)
+    if bad_flag_col is not None:
+        bad_stats = g[bad_flag_col].agg(
+            bad_cnt="sum",
+            bad_rate="mean"
+        ).reset_index()
+        out = out.merge(bad_stats, on=segment_col, how="left")
+
+    # Bad balance rate (amount-based)
+    if exposure_col is not None and bad_balance_col is not None:
+        amt_stats = g[[exposure_col, bad_balance_col]].sum(min_count=1).reset_index()
+        amt_stats["bad_balance_rate"] = amt_stats[bad_balance_col] / amt_stats[exposure_col]
+        out = out.merge(amt_stats, on=segment_col, how="left")
+
+    # Add a label so you know which feature this table refers to
+    out.insert(1, "feature", feature_col)
+
+    # Clean formatting types
+    for col in ["feature_missing_pct", "bad_rate", "bad_balance_rate"]:
+        if col in out.columns:
+            out[col] = out[col].astype(float)
+
+    return out
