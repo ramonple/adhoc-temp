@@ -1,0 +1,37 @@
+The Rule Engine is a UK-developed decision optimisation platform designed to modernise how we build and deploy credit strategies.
+
+As data sources continue to expand — particularly across bureau and multi-bureau environments — the complexity of credit decisioning has increased significantly. At the same time, regulatory expectations around fairness, explainability and governance continue to rise. While we have access to powerful data and analytics, converting that capability into robust, implementable credit rules remains largely manual, time-consuming and inconsistent.
+
+The Rule Engine addresses this challenge by introducing a structured and scalable framework for rule development.
+
+One of its core strengths is an iterative feature selection process powered by advanced analytics and machine learning. Rather than relying on a single metric or static ranking approach, the engine evaluates potential risk drivers from multiple statistical and model-based perspectives and continuously refines the selection.
+
+Machine learning techniques are used to assess feature importance, incremental contribution and stability, while structured analytics ensure robustness and interpretability.
+
+This ensures that selected features are:
+	•	Predictive in isolation
+	•	Complementary rather than redundant
+	•	Stable across segments
+	•	Suitable for real-world implementation
+
+The focus is not just statistical strength, but practical robustness and long-term reliability.
+
+A second core capability lies in its optimisation-driven rule construction. Once meaningful drivers are identified, the engine applies structured optimisation techniques to construct decline and approval logic under defined business constraints.
+
+This allows us to:
+	•	Balance bad rate control and volume impact
+	•	Explore multiple strategy configurations efficiently
+	•	Adapt rules to different portfolio objectives
+	•	Maintain transparency in trade-off decisions
+
+Importantly, optimisation is performed within governance boundaries, ensuring that resulting rules are reasonable, explainable and compliant before deployment.
+
+The Rule Engine is designed as a reusable capability rather than a one-off project tool. It supports multi-bureau data and can evolve as new data sources become available, making it a future-ready platform for UK credit strategy.
+
+Since implementation, the Rule Engine has:
+	•	Reduced manual feature testing effort
+	•	Accelerated strategy refresh cycles
+	•	Improved consistency in rule construction
+	•	Strengthened alignment between advanced analytics and practical governance
+
+In summary, the Rule Engine bridges sophisticated data science and operational credit decisioning. It enables faster, smarter and more controlled lending decisions — while maintaining stability, fairness and regulatory confidence.
