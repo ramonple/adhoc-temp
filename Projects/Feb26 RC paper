@@ -1,0 +1,115 @@
+
+
+1️⃣ Background & Objective 
+
+Last year we temporarily relaxed the broker Delphi cut-off to 900.
+Performance within the 900–975 segment showed elevated risk, and the cut-off was subsequently tightened back to 975.
+
+The objective of this project is to reassess the low Delphi segment, to determine whether targeted tightening rules can enable controlled expansion without increasing portfolio risk.
+
+2️⃣ Base Population
+
+The base population consists of 466 accounts within the 900–975 band.
+Under the 3@6 definition, 50 accounts are bad, resulting in a 10.73% bad rate — much higher than our typical baseline.
+
+We assessed both Experian and Equifax bureau variables, totalling more than 2,100 features. This broad feature space allows us to fully capture risk signals within this segment.
+
+3️⃣ Methodology – Feature Discovery
+ 
+In this project, we utilised our internally developed AI-driven Rule Engine framework.
+
+First, we implemented machine-learning-driven feature evaluation functions to iteratively select predictive drivers.
+
+Pause 
+
+The iterative design ensures that predictive power is continuously evaluated across multiple modelling techniques, rather than relying on a one-off static selection process.
+
+Although advanced machine learning techniques are embedded in the framework, Explainable AI tools and automated logic checks are integrated throughout.
+
+On the right-hand side, I have included several supporting visualisations generated alongside the framework to illustrate this process.
+
+The top-left SHAP summary plot provides a global overview of feature importance, showing both the strength and direction of impact on risk.
+
+The bottom-left SHAP waterfall plot presents a local explanation for an individual prediction, which is particularly valuable for validating rule logic at case level.
+
+The right distribution plots, correlation heatmap, and worst-performing tail bar plot help us identify where risk concentration is most evident and ensure feature stability.
+
+Together, these controls ensure that even when black-box models are utilised, the outputs remain transparent, interpretable, and fully aligned with business and governance requirements.
+
+4️⃣ Methodology – Iterative Rule Construction
+In addition to iterative feature selection, another key highlight of this project is that the rule construction itself is also performed iteratively.
+
+Pause.
+
+Once a strong and policy-aligned rule is identified, it is implemented to establish an updated baseline.
+
+Subsequent rule discovery is then conducted on the refined population, rather than the original dataset.
+
+This dynamic baseline updating ensures that each iteration captures new and incremental bad pockets, rather than repeatedly targeting the same accounts.
+
+ 5.  rules  
+
+Based on this iterative framework, we obtained over 100,000 eligible rules.
+From this universe, we calibrated and proposed a final set of 10 rules.
+
+Of the 10 rules:
+8 are Experian-based rules
+1 is an Equifax rule
+1 is a cross-bureau rule
+
+Rule 1
+
+Rule 1 declines customers with an oldest current account age below 36 months.
+This targets individuals with limited credit history within the lower score band, where behavioural stability is less established.
+
+Rule 2
+
+Rule 2 declines customers showing significant recent balance increases — either non-mortgage balance growth exceeding 500% in the last 12 months, or non-revolving net balance increases above £8.5k.
+
+This captures sharp balance deterioration, which is typically indicative of emerging financial stress.
+
+Rules 3–6
+
+Rules 3 to 6 examine various dimensions of credit account behaviour, including:
+	•	Active hire purchase or vehicle exposure
+	•	Aggregate credit limits
+	•	Number and structure of current accounts
+	•	Overall revolving and unsecured exposure
+
+Collectively, these rules aim to identify structural indebtedness patterns and over-extension risk within this segment.
+
+Rule 7 
+
+Rule 7 declines customers flagged with a CATO warning indicator, based on recent turnover behaviour.
+
+This rule focuses on transactional instability, which may signal short-term liquidity stress or inconsistent cash flow patterns.
+
+Rule 8
+
+Rule 8 incorporates identity consistency indicators, addressing potential profile instability or verification concerns within this higher-risk band.
+
+Rule 9 
+
+This rule identifies customers with concentrated recent credit searches alongside broader account exposure, a pattern associated with elevated short-term risk in this band.
+
+Rule 10 
+The Cross-Bureau rule consolidates unsecured exposure signals across bureau sources to capture overall leverage risk.
+
+Together, these ten rules target complementary risk dimensions — credit maturity, balance deterioration, structural indebtedness, behavioural instability, identity consistency, and cross-bureau leverage — providing a comprehensive and multi-layered risk assessment of the low Delphi segment.
+
+On the right-hand side, the table summarises the individual performance of each rule and the cumulative impact.
+
+Although the base population contains 50 bad accounts, for the bad volume column, we can see that each rule detects a meaningful portion of bad customers.
+
+This demonstrates that the rules are identifying consistent risk patterns rather than being tailored to isolated individual cases.
+
+ By implementating all 10 rules, we could reduces the bad rate from 10.73% to 0.91%.
+
+At the same time, we retain approximately 42% of production.
+
+Pause.
+
+£776k production over the 5-month period analysed. On a monthly basis, this equates to roughly £150k additional lending per month.
+
+We are therefore seeking approval to implement the proposed tightening strategy with enhanced post-deployment monitoring.
+
