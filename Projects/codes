@@ -1,6 +1,72 @@
 import pandas as pd
 import plotly.graph_objects as go
 
+# ---- Data ----
+data = [
+    ("900-975",   13.0),
+    ("975-1000",   9.6),
+    ("1000-1050",  3.0),
+    ("1050-1100",  2.8),
+    ("1100-1150",  1.2),
+    ("1150-1200",  0.9),
+    ("1200+",      1.5),
+    ("Missing",    3.0),
+]
+
+df = pd.DataFrame(data, columns=["Delphi Band", "Bad Rate (%)"])
+
+portfolio_avg = 2.73  # official portfolio average
+
+# ---- Colour logic (above portfolio avg = risk colour) ----
+colors = [
+    "#D62728" if br > portfolio_avg else "#1F77B4"
+    for br in df["Bad Rate (%)"]
+]
+
+# ---- Plot ----
+fig = go.Figure()
+
+fig.add_trace(
+    go.Bar(
+        x=df["Delphi Band"],
+        y=df["Bad Rate (%)"],
+        text=df["Bad Rate (%)"].round(1).astype(str) + "%",
+        textposition="outside",
+        marker_color=colors,
+        hovertemplate="<b>%{x}</b><br>3@6 Bad Rate: %{y:.1f}%<extra></extra>",
+    )
+)
+
+# Portfolio benchmark line
+fig.add_hline(
+    y=portfolio_avg,
+    line_dash="dash",
+    line_width=2,
+    annotation_text=f"Portfolio Avg: {portfolio_avg:.2f}%",
+    annotation_position="top right"
+)
+
+fig.update_layout(
+    title="3@6 Bad Rate Distribution by Delphi Band",
+    template="plotly_white",
+    height=500,
+    yaxis=dict(
+        title="3@6 Bad Rate (%)",
+        ticksuffix="%",
+        rangemode="tozero"
+    ),
+    xaxis=dict(title="Delphi Band"),
+    showlegend=False,
+    margin=dict(l=60, r=60, t=80, b=60),
+)
+
+fig.show()
+
+
+
+import pandas as pd
+import plotly.graph_objects as go
+
 # ---- Data (from your screenshot) ----
 data = [
     ("a.900-975",   471, 0.130),
