@@ -1,0 +1,39 @@
+import pandas as pd
+import ast
+
+def split_tuple_col(df, col, new_cols=("A","B","C","D")):
+    s = df[col]
+
+    def to_tuple(x):
+        if pd.isna(x):
+            return (pd.NA,) * len(new_cols)
+
+        # already a tuple/list
+        if isinstance(x, (tuple, list)):
+            return tuple(x)
+
+        # string like "(1.14, 1.19, 7.3, 6.9)"
+        if isinstance(x, str):
+            x = x.strip()
+            # handle empty string
+            if x == "":
+                return (pd.NA,) * len(new_cols)
+            try:
+                v = ast.literal_eval(x)
+                if isinstance(v, (tuple, list)):
+                    return tuple(v)
+                else:
+                    return (pd.NA,) * len(new_cols)
+            except Exception:
+                return (pd.NA,) * len(new_cols)
+
+        # anything else
+        return (pd.NA,) * len(new_cols)
+
+    tuples = s.apply(to_tuple)
+
+    # make sure length matches
+    tuples = tuples.apply(lambda t: t[:len(new_cols)] + (pd.NA,)*(len(new_cols)-len(t)) if isinstance(t, tuple) else (pd.NA,)*len(new_cols))
+
+    df[list(new_cols)] = pd.DataFrame(tuples.tolist(), index=df.index)
+    return df
