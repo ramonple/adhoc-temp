@@ -92,3 +92,147 @@ def compare_columns_distribution(
     plt.legend()
     plt.tight_layout()
     plt.show()
+
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def plot_distributions_by_channel(
+    data: pd.DataFrame,
+    channel_col: str,
+    columns: list[str],
+    channel_values: list[str] | None = None,
+    show_hist: bool = True,
+    show_density: bool = True,
+    bins: int | str = "fd",
+    alpha_hist: float = 0.30,
+    trim_quantiles: tuple[float, float] | None = (0.001, 0.999),
+    figsize: tuple[int, int] = (7, 4),
+):
+    """
+    Split one dataset by channel_col, and for each channel plot the
+    distributions of selected numeric columns in one figure.
+
+    Parameters
+    ----------
+    data : pd.DataFrame
+        Source dataframe.
+    channel_col : str
+        Column used to split data into sub-datasets.
+    columns : list[str]
+        Numeric columns to compare within each channel.
+    channel_values : list[str] | None
+        Optional subset of channel values to plot. If None, use all.
+    show_hist : bool
+        Whether to show histograms.
+    show_density : bool
+        Whether to show KDE lines.
+    bins : int | str
+        Histogram bins. Supports integer, "fd", or "auto".
+    alpha_hist : float
+        Histogram transparency.
+    trim_quantiles : tuple[float, float] | None
+        Optional trimming for display only.
+    figsize : tuple[int, int]
+        Figure size.
+    """
+
+    if channel_col not in data.columns:
+        raise ValueError(f"'{channel_col}' must exist in dataframe.")
+
+    missing_cols = [c for c in columns if c not in data.columns]
+    if missing_cols:
+        raise ValueError(f"These columns are missing from dataframe: {missing_cols}")
+
+    if channel_values is None:
+        channel_values = data[channel_col].dropna().unique().tolist()
+
+    def kde_gaussian(sample: np.ndarray, grid: np.ndarray) -> np.ndarray:
+        n = sample.size
+        if n == 0:
+            return np.zeros_like(grid)
+
+        std = sample.std(ddof=1) if n > 1 else 0.0
+        bw = 1.06 * std * (n ** (-1/5)) if std > 0 else (grid.ptp() / 50 if grid.ptp() > 0 else 1.0)
+        bw = max(bw, 1e-9)
+
+        z = (grid[:, None] - sample[None, :]) / bw
+        return np.exp(-0.5 * z**2).sum(axis=1) / (n * bw * np.sqrt(2 * np.pi))
+
+    for channel in channel_values:
+        df_sub = data[data[channel_col] == channel].copy()
+
+        series_dict = {}
+        for col in columns:
+            s = pd.to_numeric(df_sub[col], errors="coerce").dropna()
+            if len(s) > 0:
+                series_dict[col] = s
+
+        if not series_dict:
+            print(f"Skipping channel '{channel}' because no valid numeric data found.")
+            continue
+
+        # Optional trimming for display only
+        if trim_quantiles is not None:
+            lo, hi = trim_quantiles
+            all_q_low = min(s.quantile(lo) for s in series_dict.values())
+            all_q_high = max(s.quantile(hi) for s in series_dict.values())
+
+            plot_series = {
+                col: s[(s >= all_q_low) & (s <= all_q_high)]
+                for col, s in series_dict.items()
+            }
+        else:
+            plot_series = series_dict
+
+        # Combine for common range / bins
+        all_vals = pd.concat(list(plot_series.values()), ignore_index=True)
+        data_range = (all_vals.min(), all_vals.max())
+
+        if data_range[0] == data_range[1]:
+            data_range = (data_range[0] - 0.5, data_range[1] + 0.5)
+
+        if bins == "fd":
+            q75, q25 = np.percentile(all_vals, [75, 25])
+            iqr = q75 - q25
+            bw = 2 * iqr * (len(all_vals) ** (-1/3)) if iqr > 0 else 0
+            n_bins = int(np.ceil((data_range[1] - data_range[0]) / bw)) if bw > 0 else 30
+            n_bins = max(10, min(n_bins, 200))
+        elif bins == "auto":
+            n_bins = 30
+        else:
+            n_bins = int(bins)
+
+        edges = np.linspace(data_range[0], data_range[1], n_bins + 1)
+        x = np.linspace(data_range[0], data_range[1], 400)
+
+        plt.figure(figsize=figsize)
+
+        for col, s_plot in plot_series.items():
+            if len(s_plot) == 0:
+                continue
+
+            if show_hist:
+                plt.hist(
+                    s_plot,
+                    bins=edges,
+                    density=True,
+                    alpha=alpha_hist,
+                    label=f"{col} (n={len(series_dict[col])})",
+                )
+
+            if show_density:
+                plt.plot(
+                    x,
+                    kde_gaussian(s_plot.to_numpy(), x),
+                    linewidth=2,
+                )
+
+        plt.title(f"Distribution comparison by column | {channel_col} = {channel}")
+        plt.xlabel("Value")
+        plt.ylabel("Density")
+        plt.legend()
+        plt.tight_layout()
+        plt.show()
