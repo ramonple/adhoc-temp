@@ -1,0 +1,94 @@
+def compare_columns_distribution(
+    data: pd.DataFrame,
+    col1: str,
+    col2: str,
+    col1_name: str | None = None,
+    col2_name: str | None = None,
+    title: str = "Column Distribution Comparison",
+    show_hist: bool = True,
+    show_density: bool = True,
+    bins: int | str = "fd",
+    alpha_hist: float = 0.35,
+    trim_quantiles: tuple[float, float] | None = (0.001, 0.999),
+):
+
+    if col1 not in data.columns or col2 not in data.columns:
+        raise ValueError("Both columns must exist in the dataframe.")
+
+    s1 = pd.to_numeric(data[col1], errors="coerce").dropna()
+    s2 = pd.to_numeric(data[col2], errors="coerce").dropna()
+
+    if len(s1) == 0 or len(s2) == 0:
+        raise ValueError("Both columns must contain numeric values.")
+
+    if col1_name is None:
+        col1_name = col1
+    if col2_name is None:
+        col2_name = col2
+
+    # Optional trimming
+    if trim_quantiles is not None:
+        lo, hi = trim_quantiles
+        xlo = min(s1.quantile(lo), s2.quantile(lo))
+        xhi = max(s1.quantile(hi), s2.quantile(hi))
+        s1_plot = s1[(s1 >= xlo) & (s1 <= xhi)]
+        s2_plot = s2[(s2 >= xlo) & (s2 <= xhi)]
+    else:
+        s1_plot, s2_plot = s1, s2
+
+    # Common bins
+    all_vals = pd.concat([s1_plot, s2_plot], ignore_index=True)
+    data_range = (all_vals.min(), all_vals.max())
+
+    if bins == "fd":
+        q75, q25 = np.percentile(all_vals, [75, 25])
+        iqr = q75 - q25
+        bw = 2 * iqr * (len(all_vals) ** (-1/3)) if iqr > 0 else 0
+        n_bins = int(np.ceil((data_range[1] - data_range[0]) / bw)) if bw > 0 else 30
+        n_bins = max(10, min(n_bins, 200))
+    elif bins == "auto":
+        n_bins = 30
+    else:
+        n_bins = int(bins)
+
+    edges = np.linspace(data_range[0], data_range[1], n_bins + 1)
+
+    plt.figure(figsize=(6,4))
+
+    if show_hist:
+        plt.hist(
+            s1_plot,
+            bins=edges,
+            density=True,
+            alpha=alpha_hist,
+            label=f"{col1_name} (n={len(s1)})",
+        )
+
+        plt.hist(
+            s2_plot,
+            bins=edges,
+            density=True,
+            alpha=alpha_hist,
+            label=f"{col2_name} (n={len(s2)})",
+        )
+
+    if show_density:
+
+        x = np.linspace(data_range[0], data_range[1], 400)
+
+        def kde_gaussian(sample, grid):
+            n = sample.size
+            std = sample.std(ddof=1)
+            bw = 1.06 * std * n ** (-1/5) if std > 0 else 1
+            z = (grid[:, None] - sample[None, :]) / bw
+            return np.exp(-0.5 * z**2).sum(axis=1) / (n * bw * np.sqrt(2*np.pi))
+
+        plt.plot(x, kde_gaussian(s1_plot.to_numpy(), x), linewidth=2)
+        plt.plot(x, kde_gaussian(s2_plot.to_numpy(), x), linewidth=2)
+
+    plt.xlabel("Value")
+    plt.ylabel("Density")
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
