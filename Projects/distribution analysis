@@ -1,5 +1,141 @@
 import numpy as np
 import pandas as pd
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+
+
+def distribution_analysis_plotly(data, data_name, bins, cut_off_group, smooth_window=3):
+    data = data.copy()
+
+    # Request amount bins
+    data['req_bin'] = pd.qcut(data['AMT_REQ_SPEND'], bins, duplicates='drop')
+
+    # Pattern table
+    pattern = (
+        data.groupby('req_bin', observed=False)
+        .agg(
+            volume=('Utilisation', 'count'),
+            avg_first_spend=('SPEND_AMOUNT', 'mean'),
+            avg_util=('Utilisation', 'mean'),
+            mean_request_amount=('AMT_REQ_SPEND', 'mean')
+        )
+        .reset_index()
+        .sort_values('mean_request_amount')
+    )
+
+    # Smooth average utilisation
+    pattern['avg_util_smooth'] = (
+        pattern['avg_util']
+        .rolling(smooth_window, center=True, min_periods=1)
+        .mean()
+    )
+
+    # Cutoff analysis
+    cutoff_results = []
+
+    for c in cut_off_group:
+        g1 = data[data['AMT_REQ_SPEND'] <= c]['Utilisation']
+        g2 = data[data['AMT_REQ_SPEND'] > c]['Utilisation']
+
+        if len(g1) == 0 or len(g2) == 0:
+            continue
+
+        diff = g1.mean() - g2.mean()
+
+        cutoff_results.append({
+            'cutoff': c,
+            '<= cutoff mean util': g1.mean(),
+            '> cutoff mean util': g2.mean(),
+            'Diff': diff,
+            'n<=cutoff': len(g1),
+            'n>cutoff': len(g2)
+        })
+
+    cutoff_df = pd.DataFrame(cutoff_results)
+
+    # Best cutoff
+    best_cutoff = None
+    if not cutoff_df.empty:
+        best_idx = cutoff_df['Diff'].abs().idxmax()
+        best_cutoff = cutoff_df.loc[best_idx, 'cutoff']
+
+    # Plotly chart
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+
+    # Volume bars
+    fig.add_trace(
+        go.Bar(
+            x=pattern['mean_request_amount'],
+            y=pattern['volume'],
+            name='Volume',
+            opacity=0.3,
+            hovertemplate='Requested Amount: %{x:.0f}<br>Volume: %{y}<extra></extra>'
+        ),
+        secondary_y=True
+    )
+
+    # Avg utilisation
+    fig.add_trace(
+        go.Scatter(
+            x=pattern['mean_request_amount'],
+            y=pattern['avg_util'],
+            mode='lines+markers',
+            name='Avg util',
+            line=dict(dash='dash'),
+            hovertemplate='Requested Amount: %{x:.0f}<br>Avg util: %{y:.4f}<extra></extra>'
+        ),
+        secondary_y=False
+    )
+
+    # Smooth avg utilisation
+    fig.add_trace(
+        go.Scatter(
+            x=pattern['mean_request_amount'],
+            y=pattern['avg_util_smooth'],
+            mode='lines',
+            name=f'Smooth avg util ({smooth_window}-bin moving average)',
+            line=dict(width=3),
+            hovertemplate='Requested Amount: %{x:.0f}<br>Smooth avg util: %{y:.4f}<extra></extra>'
+        ),
+        secondary_y=False
+    )
+
+    # Best cutoff line
+    if best_cutoff is not None:
+        fig.add_vline(
+            x=best_cutoff,
+            line_dash='dash',
+            line_color='red',
+            annotation_text=f'Best cutoff: {best_cutoff}',
+            annotation_position='top'
+        )
+
+    fig.update_layout(
+        title=f'Utilisation Distribution for {data_name}',
+        template='plotly_white',
+        width=1100,
+        height=450,
+        hovermode='x unified',
+        legend=dict(
+            orientation='h',
+            y=1.12,
+            x=0
+        )
+    )
+
+    fig.update_xaxes(title_text='Requested Amount')
+    fig.update_yaxes(title_text='Utilisation', secondary_y=False)
+    fig.update_yaxes(title_text='Volume', secondary_y=True)
+
+    fig.show()
+
+    if best_cutoff is not None:
+        print(f'Best cutoff for {data_name}: {best_cutoff}')
+
+    return pattern, cutoff_df, fig, best_cutoff
+
+import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
