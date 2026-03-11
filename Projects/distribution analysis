@@ -1,3 +1,150 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+
+def analyse_utilisation_cutoff(
+    data: pd.DataFrame,
+    request_col: str,
+    spend_col: str,
+    data_name: str = "All Data",
+    channel_col: str | None = None,
+    channel_value=None,
+    product_col: str | None = None,
+    product_value=None,
+    n_bins: int = 50,
+    smooth_window: int = 5,
+    cutoff_step: int = 500,
+    min_volume_each_side: int = 100,
+    clip_util: tuple[float, float] | None = (0, 1.5),
+):
+    df = data.copy()
+
+    # optional filters
+    if channel_col is not None and channel_value is not None:
+        df = df[df[channel_col] == channel_value]
+
+    if product_col is not None and product_value is not None:
+        df = df[df[product_col] == product_value]
+
+    # clean data
+    df = df[[request_col, spend_col]].dropna()
+    df = df[df[request_col] > 0]
+
+    df["utilisation"] = df[spend_col] / df[request_col]
+
+    if clip_util is not None:
+        df["utilisation"] = df["utilisation"].clip(*clip_util)
+
+    if len(df) == 0:
+        raise ValueError("No valid data after filtering.")
+
+    # -------------------------
+    # Part 1: distribution pattern
+    # -------------------------
+    df["req_bin"] = pd.qcut(df[request_col], q=n_bins, duplicates="drop")
+
+    pattern = (
+        df.groupby("req_bin", observed=False)
+          .agg(
+              mean_request_amount=(request_col, "mean"),
+              avg_util=("utilisation", "mean"),
+              volume=("utilisation", "count")
+          )
+          .reset_index(drop=True)
+          .sort_values("mean_request_amount")
+    )
+
+    pattern["avg_util_smooth"] = (
+        pattern["avg_util"]
+        .rolling(smooth_window, center=True, min_periods=1)
+        .mean()
+    )
+
+    # plot in one figure
+    fig, ax1 = plt.subplots(figsize=(12, 4))
+
+    ax1.bar(
+        pattern["mean_request_amount"],
+        pattern["volume"],
+        alpha=0.25,
+        label="Volume"
+    )
+    ax1.set_ylabel("Volume")
+    ax1.set_xlabel("Requested Amount")
+
+    ax2 = ax1.twinx()
+    ax2.plot(
+        pattern["mean_request_amount"],
+        pattern["avg_util"],
+        marker="o",
+        linewidth=1.2,
+        alpha=0.5,
+        label="Avg utilisation"
+    )
+    ax2.plot(
+        pattern["mean_request_amount"],
+        pattern["avg_util_smooth"],
+        linewidth=2.5,
+        label=f"Smoothed utilisation ({smooth_window}-bin MA)"
+    )
+    ax2.set_ylabel("Utilisation")
+
+    plt.title(f"Utilisation Pattern | {data_name}")
+    ax1.grid(alpha=0.2)
+
+    h1, l1 = ax1.get_legend_handles_labels()
+    h2, l2 = ax2.get_legend_handles_labels()
+    ax2.legend(h1 + h2, l1 + l2, loc="upper right")
+
+    plt.tight_layout()
+    plt.show()
+
+    # -------------------------
+    # Part 2: cutoff testing
+    # -------------------------
+    min_req = int(np.floor(df[request_col].min() / cutoff_step) * cutoff_step)
+    max_req = int(np.ceil(df[request_col].max() / cutoff_step) * cutoff_step)
+
+    cutoffs = np.arange(min_req + cutoff_step, max_req, cutoff_step)
+
+    results = []
+
+    for c in cutoffs:
+        low = df[df[request_col] < c]
+        high = df[df[request_col] >= c]
+
+        n_low = len(low)
+        n_high = len(high)
+
+        if n_low < min_volume_each_side or n_high < min_volume_each_side:
+            continue
+
+        low_mean = low["utilisation"].mean()
+        high_mean = high["utilisation"].mean()
+        diff = low_mean - high_mean
+        rel_diff = diff / high_mean if high_mean != 0 else np.nan
+
+        results.append({
+            "cutoff": c,
+            "n_below": n_low,
+            "n_above_equal": n_high,
+            "avg_util_below": low_mean,
+            "avg_util_above_equal": high_mean,
+            "util_diff": diff,
+            "relative_diff": rel_diff
+        })
+
+    cutoff_df = pd.DataFrame(results)
+
+    if not cutoff_df.empty:
+        cutoff_df = cutoff_df.sort_values("util_diff", ascending=False).reset_index(drop=True)
+
+    return pattern, cutoff_df
+
+
+
+
 def compare_columns_distribution(
     data: pd.DataFrame,
     col1: str,
