@@ -1,0 +1,49 @@
+(case 
+    when missing(d.TXT_PRF_FTILF04) then e.FTILF04 
+    else input(d.TXT_PRF_FTILF04, best32.) 
+ end) as FTILF04,
+
+(case 
+    when missing(d.TXT_PRF_BSC435) then e.BSC435 
+    else input(d.TXT_PRF_BSC435, best32.) 
+ end) as BSC435,
+
+(case 
+    when missing(d.TXT_PRF_YSC053) then e.YSC053 
+    else input(d.TXT_PRF_YSC053, best32.) 
+ end) as YSC053,
+
+(case 
+    when missing(d.TXT_PRF_BSC468) then e.BSC468 
+    else input(d.TXT_PRF_BSC468, best32.) 
+ end) as BSC468,
+
+(case 
+    when missing(d.TXT_PRF_JSC547) then e.JSC547 
+    else input(d.TXT_PRF_JSC547, best32.) 
+ end) as JSC547,
+
+(case 
+    when missing(d.TXT_PRF_EPCF19) then e.EPCF19 
+    else input(d.TXT_PRF_EPCF19, best32.) 
+ end) as EPCF19,
+
+(case 
+    when missing(d.TXT_PRF_INOSF04) then e.INOSF04 
+    else input(d.TXT_PRF_INOSF04, best32.) 
+ end) as INOSF04,
+
+(case 
+    when missing(d.EMP_SECTOR) then e.EMP_SECTOR 
+    else d.EMP_SECTOR 
+ end) as EMP_SECTOR,
+
+(case 
+    when missing(d.ind_rent_mort) then e.ind_rent_mort 
+    else d.ind_rent_mort 
+ end) as ind_rent_mort,
+
+(case 
+    when missing(d.tot_rent_mort) then e.tot_rent_mort 
+    else d.tot_rent_mort 
+ end) as tot_rent_mort
