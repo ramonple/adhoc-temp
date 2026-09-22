@@ -1,0 +1,25 @@
+“Moving to the new rule construction part of the analysis, we used PRAISE to develop additional policy rules on top of the Infinian population.
+
+This is also the first time we have applied PRAISE to TransUnion data in a real-world project. This is important because it demonstrates the flexibility of the framework — PRAISE is not tied to one specific bureau or data source, and can be extended across different datasets to support policy development.
+
+For this analysis, we started with around 1,400 Infinian and TransUnion features. Through several iterations, PRAISE generated and assessed more than 20,000 candidate rules, from which we selected three rules capturing different dimensions of risk.
+
+Rule 1 focuses on recent credit appetite. It identifies customers who have opened more than two revolving accounts within the last six months, which may indicate a relatively rapid increase in credit exposure.
+
+Rule 2 focuses on credit depth and maturity. It identifies customers with a relatively short credit history and only a limited number of established satisfactory accounts, meaning we have less evidence of a mature and stable repayment history.
+
+Rule 3 captures recent application activity, based on the number of deduplicated credit searches within the last 12 months. Higher search activity can indicate increased demand for credit.
+
+Figure 3 summarises the performance of the individual rules and the combined strategy.
+
+The key result is the Infinian plus all PRAISE rules strategy. Compared with the refined baseline, the bad balance rate reduces by around 46%, from 8.95% to 4.85%. At the same time, we reduce bad balance by around 55%, with a 19.7% reduction in production.
+
+More importantly, if we compare this with simply tightening the score cut-off, the Infinian plus PRAISE strategy delivers a much stronger risk–volume trade-off. It reduces bad balance to around £47k, compared with around £50k under the score cut-off, while retaining around £839k of production, compared with around £670k.
+
+So we are able to achieve a slightly lower bad balance while preserving substantially more business volume.
+
+At portfolio level, implementing the proposed strategy would reduce the overall acceptance rate for no-basket customers from around 20% to 16.9%.
+
+So rather than applying a broad score tightening across the population, PRAISE allows us to target the specific risk characteristics driving the deterioration in a much more focused and efficient way.
+
+Based on these results, we are seeking approval to implement the Infinian and PRAISE TransUnion rules, subject to post-implementation monitoring to confirm their ongoing effectiveness.”
